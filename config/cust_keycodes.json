@@ -1,1 +1,36 @@
-[]
+[
+	{
+		"names": [
+			"LEFT_COMMAND(LEFT_SHIFT(\\))"
+		],
+		"description": "LEFT_COMMAND(LEFT_SHIFT(\\))",
+		"clarify": false,
+		"documentation": "",
+		"os": {
+			"windows": true,
+			"linux": true,
+			"android": true,
+			"macos": true,
+			"ios": true
+		},
+		"footnotes": {},
+		"type": "UD"
+	},
+	{
+		"names": [
+			"LG(LS(\\))"
+		],
+		"description": "LG(LS(\\))",
+		"clarify": false,
+		"documentation": "",
+		"os": {
+			"windows": true,
+			"linux": true,
+			"android": true,
+			"macos": true,
+			"ios": true
+		},
+		"footnotes": {},
+		"type": "UD"
+	}
+]
