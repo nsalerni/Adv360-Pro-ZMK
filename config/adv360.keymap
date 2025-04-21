@@ -24,10 +24,13 @@
 #include <dt-bindings/zmk/rgb.h>
 >>>>>>> e056d3d (add layer on backspace key with num pad on right and symbols on left)
 
+// CONFIGURATION
+&lt { quick-tap-ms = <200>; };
+
 / {
     behaviors {
         #include "macros.dtsi"
-    #include "version.dtsi"
+        #include "version.dtsi"
 
         hm: homerow_mods {
             compatible = "zmk,behavior-hold-tap";
@@ -88,7 +91,7 @@
 &trans  &kp CARET  &kp EXCLAMATION  &kp LBRC          &kp RBRC           &kp DQT    &trans                                      &trans  &kp MINUS  &kp N7           &kp N8             &kp N9      &trans  &trans
 &trans  &kp AMPS   &kp COLON        &kp LPAR          &kp RPAR           &kp EQUAL  &trans  &trans  &trans      &trans  &trans  &trans  &kp PLUS   &kp N4           &kp N5             &kp N6      &trans  &trans
 &trans  &kp TILDE  &kp ASTERISK     &kp LT            &kp GT             &kp SQT                    &trans      &trans                  &kp UNDER  &kp N1           &kp N2             &kp N3      &trans  &trans
-&trans  &trans     &trans           &kp LEFT_BRACKET  &kp RIGHT_BRACKET             &trans  &trans  &trans      &trans  &trans  &kp N0             &kp C_VOLUME_UP  &kp C_VOLUME_DOWN  &kp C_MUTE  &trans  &trans
+&trans  &trans     &trans           &kp LEFT_BRACKET  &kp RIGHT_BRACKET             &trans  &trans  &trans      &trans  &trans  &kp N0             &kp C_VOLUME_UP  &kp C_VOLUME_DOWN  &kp K_MUTE  &trans  &trans
             >;
         };
     };
