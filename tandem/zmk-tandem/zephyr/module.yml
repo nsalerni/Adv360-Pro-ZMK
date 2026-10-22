@@ -1,0 +1,4 @@
+name: zmk-tandem
+build:
+  cmake: .
+  kconfig: Kconfig

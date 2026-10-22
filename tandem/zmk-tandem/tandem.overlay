@@ -1,0 +1,11 @@
+/ {
+    chosen {
+        tandem,autoflash-uart = &tandem_autoflash_uart;
+    };
+};
+
+&zephyr_udc0 {
+    tandem_autoflash_uart: tandem_autoflash_uart {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};

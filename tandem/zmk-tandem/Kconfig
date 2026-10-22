@@ -1,0 +1,16 @@
+config TANDEM_AUTOFLASH
+    bool "Tandem automatic flashing"
+    depends on USB_CDC_ACM
+    select CDC_ACM_DTE_RATE_CALLBACK_SUPPORT
+    help
+      Adds a USB serial port that the Tandem app uses to flash this half
+      without key presses. Setting the port to 1200 baud reboots into the
+      UF2 bootloader. Writing "info" returns one JSON line with the build ID.
+
+if TANDEM_AUTOFLASH
+
+config TANDEM_BUILD_ID
+    string "Build ID reported to the Tandem app"
+    default "dev"
+
+endif

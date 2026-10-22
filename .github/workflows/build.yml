@@ -20,6 +20,8 @@ jobs:
           branch_name=$(echo "${{ github.ref }}" | awk -F'/' '{print $3}' | cut -c1-4)
           echo "file_prefix=$file_prefix" >> $GITHUB_OUTPUT
           bin/get_version.sh $branch_name $commit
+      - name: Tandem build ID
+        run: mkdir -p tandem && echo "CONFIG_TANDEM_BUILD_ID=\"$(echo ${{ github.sha }} | cut -c1-7)\"" > tandem/build-id.conf
       - name: Cache west modules
         uses: actions/cache@v4
         env:
@@ -43,11 +45,11 @@ jobs:
       - name: West Zephyr export
         run: west zephyr-export
       - name: West Build (left)
-        run: west build -s zmk/app -d build/left -b adv360_left -- -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+        run: west build -s zmk/app -d build/left -b adv360_left -- -DZMK_CONFIG="${GITHUB_WORKSPACE}/config" -DZMK_EXTRA_MODULES="${GITHUB_WORKSPACE}/tandem/zmk-tandem" -DEXTRA_DTC_OVERLAY_FILE="${GITHUB_WORKSPACE}/tandem/zmk-tandem/tandem.overlay" "-DEXTRA_CONF_FILE=${GITHUB_WORKSPACE}/tandem/zmk-tandem/tandem.conf;${GITHUB_WORKSPACE}/tandem/build-id.conf"
       - name: Adv360 Left Kconfig file
         run: grep -vE '(^#|^$)' build/left/zephyr/.config
       - name: West Build (right)
-        run: west build -s zmk/app -d build/right -b adv360_right -- -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+        run: west build -s zmk/app -d build/right -b adv360_right -- -DZMK_CONFIG="${GITHUB_WORKSPACE}/config" -DZMK_EXTRA_MODULES="${GITHUB_WORKSPACE}/tandem/zmk-tandem" -DEXTRA_DTC_OVERLAY_FILE="${GITHUB_WORKSPACE}/tandem/zmk-tandem/tandem.overlay" "-DEXTRA_CONF_FILE=${GITHUB_WORKSPACE}/tandem/zmk-tandem/tandem.conf;${GITHUB_WORKSPACE}/tandem/build-id.conf"
       - name: Adv360 Right Kconfig file
         run: grep -vE '(^#|^$)' build/right/zephyr/.config
       - name: Rename zmk.uf2
@@ -76,6 +78,8 @@ jobs:
           branch_name=$(echo "${{ github.ref }}" | awk -F'/' '{print $3}' | cut -c1-4)
           echo "file_prefix=$file_prefix" >> $GITHUB_OUTPUT
           bin/get_version.sh $branch_name $commit clique
+      - name: Tandem build ID
+        run: mkdir -p tandem && echo "CONFIG_TANDEM_BUILD_ID=\"$(echo ${{ github.sha }} | cut -c1-7)\"" > tandem/build-id.conf
       - name: Cache west modules
         uses: actions/cache@v4
         env:
@@ -99,11 +103,11 @@ jobs:
       - name: West Zephyr export
         run: west zephyr-export
       - name: West Build (left)
-        run: west build -s zmk/app -d build/left -b adv360_left -S studio-rpc-usb-uart -- -DZMK_CONFIG="${GITHUB_WORKSPACE}/config" -DCONFIG_ZMK_STUDIO=y
+        run: west build -s zmk/app -d build/left -b adv360_left -S studio-rpc-usb-uart -- -DZMK_CONFIG="${GITHUB_WORKSPACE}/config" -DZMK_EXTRA_MODULES="${GITHUB_WORKSPACE}/tandem/zmk-tandem" -DEXTRA_DTC_OVERLAY_FILE="${GITHUB_WORKSPACE}/tandem/zmk-tandem/tandem.overlay" "-DEXTRA_CONF_FILE=${GITHUB_WORKSPACE}/tandem/zmk-tandem/tandem.conf;${GITHUB_WORKSPACE}/tandem/build-id.conf" -DCONFIG_ZMK_STUDIO=y
       - name: Adv360 Left Kconfig file
         run: grep -vE '(^#|^$)' build/left/zephyr/.config
       - name: West Build (right)
-        run: west build -s zmk/app -d build/right -b adv360_right -- -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+        run: west build -s zmk/app -d build/right -b adv360_right -- -DZMK_CONFIG="${GITHUB_WORKSPACE}/config" -DZMK_EXTRA_MODULES="${GITHUB_WORKSPACE}/tandem/zmk-tandem" -DEXTRA_DTC_OVERLAY_FILE="${GITHUB_WORKSPACE}/tandem/zmk-tandem/tandem.overlay" "-DEXTRA_CONF_FILE=${GITHUB_WORKSPACE}/tandem/zmk-tandem/tandem.conf;${GITHUB_WORKSPACE}/tandem/build-id.conf"
       - name: Adv360 Right Kconfig file
         run: grep -vE '(^#|^$)' build/right/zephyr/.config
       - name: Rename zmk.uf2
