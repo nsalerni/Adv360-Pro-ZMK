@@ -5,12 +5,18 @@ config TANDEM_AUTOFLASH
     help
       Adds a USB serial port that the Tandem app uses to flash this half
       without key presses. Setting the port to 1200 baud reboots into the
-      UF2 bootloader. Writing "info" returns one JSON line with the build ID.
+      UF2 bootloader. Writing "info" returns one JSON line with the build ID,
+      and writing "keymap" returns the keymap source this firmware was built
+      from.
 
 if TANDEM_AUTOFLASH
 
 config TANDEM_BUILD_ID
     string "Build ID reported to the Tandem app"
     default "dev"
+
+config TANDEM_REPO
+    string "GitHub repo this firmware was built from, as owner/name"
+    default ""
 
 endif

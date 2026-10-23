@@ -21,7 +21,10 @@ jobs:
           echo "file_prefix=$file_prefix" >> $GITHUB_OUTPUT
           bin/get_version.sh $branch_name $commit
       - name: Tandem build ID
-        run: mkdir -p tandem && echo "CONFIG_TANDEM_BUILD_ID=\"$(echo ${{ github.sha }} | cut -c1-7)\"" > tandem/build-id.conf
+        run: |
+          mkdir -p tandem
+          echo "CONFIG_TANDEM_BUILD_ID=\"$(echo ${{ github.sha }} | cut -c1-7)\"" > tandem/build-id.conf
+          echo "CONFIG_TANDEM_REPO=\"${{ github.repository }}\"" >> tandem/build-id.conf
       - name: Cache west modules
         uses: actions/cache@v4
         env:
@@ -79,7 +82,10 @@ jobs:
           echo "file_prefix=$file_prefix" >> $GITHUB_OUTPUT
           bin/get_version.sh $branch_name $commit clique
       - name: Tandem build ID
-        run: mkdir -p tandem && echo "CONFIG_TANDEM_BUILD_ID=\"$(echo ${{ github.sha }} | cut -c1-7)\"" > tandem/build-id.conf
+        run: |
+          mkdir -p tandem
+          echo "CONFIG_TANDEM_BUILD_ID=\"$(echo ${{ github.sha }} | cut -c1-7)\"" > tandem/build-id.conf
+          echo "CONFIG_TANDEM_REPO=\"${{ github.repository }}\"" >> tandem/build-id.conf
       - name: Cache west modules
         uses: actions/cache@v4
         env:

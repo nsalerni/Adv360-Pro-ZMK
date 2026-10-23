@@ -3,8 +3,10 @@
  *
  * Exposes a dedicated USB CDC ACM port. When the host sets it to 1200 baud,
  * this half reboots into the UF2 bootloader, the same way &bootloader does.
- * When the host writes "info", this half answers with one JSON line so the
- * app can tell which half it is and which build it runs.
+ * The host can also write one of these commands, each ending in a newline:
+ *
+ *   info    one JSON line: protocol version, role, name, build ID and repo
+ *   keymap  a JSON line with the byte count, then the keymap source itself
  */
 
 #include <string.h>
@@ -16,12 +18,14 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/reboot.h>
+#include <zephyr/sys/util.h>
 
 #include <dt-bindings/zmk/reset.h>
 
 LOG_MODULE_REGISTER(tandem_autoflash, CONFIG_ZMK_LOG_LEVEL);
 
 #define BOOTLOADER_BAUD 1200
+#define PROTOCOL_VERSION "2"
 
 #if IS_ENABLED(CONFIG_ZMK_SPLIT) && !IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
 #define ROLE "peripheral"
@@ -31,29 +35,71 @@ LOG_MODULE_REGISTER(tandem_autoflash, CONFIG_ZMK_LOG_LEVEL);
 
 static const struct device *const uart = DEVICE_DT_GET(DT_CHOSEN(tandem_autoflash_uart));
 
-static const char info_line[] = "{\"tandem\":1,\"role\":\"" ROLE "\",\"name\":\"" CONFIG_ZMK_KEYBOARD_NAME
-                                "\",\"build\":\"" CONFIG_TANDEM_BUILD_ID "\"}\n";
+static const char info_line[] = "{\"tandem\":" PROTOCOL_VERSION ",\"role\":\"" ROLE "\",\"name\":\"" CONFIG_ZMK_KEYBOARD_NAME
+                                "\",\"build\":\"" CONFIG_TANDEM_BUILD_ID "\",\"repo\":\"" CONFIG_TANDEM_REPO "\"}\n";
+
+// The keymap source, embedded at build time. Always ends in one extra 0x00.
+static const uint8_t keymap_text[] = {
+#include "tandem_keymap.inc"
+};
+#define KEYMAP_LEN (sizeof(keymap_text) - 1)
 
 static char rx_line[16];
 static size_t rx_len;
+
+static void send(const char *text, size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        uart_poll_out(uart, text[i]);
+    }
+}
 
 static void reboot_work_handler(struct k_work *work) { sys_reboot(RST_UF2); }
 
 static K_WORK_DELAYABLE_DEFINE(reboot_work, reboot_work_handler);
 
-static void info_work_handler(struct k_work *work) {
-    for (size_t i = 0; i < sizeof(info_line) - 1; i++) {
-        uart_poll_out(uart, info_line[i]);
+static void info_work_handler(struct k_work *work) { send(info_line, sizeof(info_line) - 1); }
+
+static K_WORK_DEFINE(info_work, info_work_handler);
+
+// The keymap is larger than the port's transmit buffer, so it goes out in
+// small chunks a few milliseconds apart instead of all at once.
+#define KEYMAP_CHUNK 192
+static size_t keymap_sent;
+
+static void keymap_work_handler(struct k_work *work);
+
+static K_WORK_DELAYABLE_DEFINE(keymap_work, keymap_work_handler);
+
+static void keymap_work_handler(struct k_work *work) {
+    size_t end = MIN(keymap_sent + KEYMAP_CHUNK, KEYMAP_LEN);
+    send((const char *)&keymap_text[keymap_sent], end - keymap_sent);
+    keymap_sent = end;
+    if (keymap_sent < KEYMAP_LEN) {
+        k_work_schedule(&keymap_work, K_MSEC(4));
+    } else {
+        send("\n", 1);
     }
 }
 
-static K_WORK_DEFINE(info_work, info_work_handler);
+static void start_keymap(void) {
+    char header[48];
+    int len = snprintk(header, sizeof(header), "{\"tandem\":" PROTOCOL_VERSION ",\"keymap\":%u}\n", (unsigned)KEYMAP_LEN);
+    send(header, len);
+    keymap_sent = 0;
+    k_work_schedule(&keymap_work, K_MSEC(4));
+}
+
+static void keymap_start_handler(struct k_work *work) { start_keymap(); }
+
+static K_WORK_DEFINE(keymap_start, keymap_start_handler);
 
 static void handle_rx_byte(uint8_t c) {
     if (c == '\r' || c == '\n') {
         rx_line[rx_len] = '\0';
         if (strcmp(rx_line, "info") == 0) {
             k_work_submit(&info_work);
+        } else if (strcmp(rx_line, "keymap") == 0) {
+            k_work_submit(&keymap_start);
         }
         rx_len = 0;
         return;
