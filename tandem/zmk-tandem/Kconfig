@@ -7,7 +7,8 @@ config TANDEM_AUTOFLASH
       without key presses. Setting the port to 1200 baud reboots into the
       UF2 bootloader. Writing "info" returns one JSON line with the build ID,
       and writing "keymap" returns the keymap source this firmware was built
-      from.
+      from. On the left half, writing "boot right" reboots the right half into
+      its bootloader over the split link.
 
 if TANDEM_AUTOFLASH
 
