@@ -44,9 +44,8 @@ LOG_MODULE_REGISTER(tandem_autoflash, CONFIG_ZMK_LOG_LEVEL);
 // and the keymap uses &bootloader, which ZMK only builds in when referenced.
 #if IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL) && IS_ENABLED(CONFIG_ZMK_SPLIT_BLE) && DT_NODE_EXISTS(DT_NODELABEL(bootloader))
 #define RELAY 1
+#include <zephyr/bluetooth/conn.h>
 #include <zmk/behavior.h>
-#include <zmk/event_manager.h>
-#include <zmk/events/split_peripheral_status_changed.h>
 #include <zmk/split/bluetooth/central.h>
 #else
 #define RELAY 0
@@ -74,23 +73,27 @@ static void reboot_work_handler(struct k_work *work) { sys_reboot(RST_UF2); }
 static K_WORK_DELAYABLE_DEFINE(reboot_work, reboot_work_handler);
 
 #if RELAY
-static bool peripheral_connected;
-
-static int peripheral_status_listener(const zmk_event_t *eh) {
-    const struct zmk_split_peripheral_status_changed *ev = as_zmk_split_peripheral_status_changed(eh);
-    if (ev) {
-        peripheral_connected = ev->connected;
+// The left half holds the central role in exactly one connection: the one to
+// the right half. Hosts connect to it the other way round. Asking Bluetooth
+// beats tracking ZMK's peripheral status events, which also fire, as
+// disconnected, when a host drops.
+static void count_right(struct bt_conn *conn, void *data) {
+    struct bt_conn_info info;
+    if (bt_conn_get_info(conn, &info) == 0 && info.role == BT_CONN_ROLE_CENTRAL && info.state == BT_CONN_STATE_CONNECTED) {
+        (*(int *)data)++;
     }
-    return ZMK_EV_EVENT_BUBBLE;
 }
 
-ZMK_LISTENER(tandem_relay, peripheral_status_listener);
-ZMK_SUBSCRIPTION(tandem_relay, zmk_split_peripheral_status_changed);
+static bool right_connected(void) {
+    int count = 0;
+    bt_conn_foreach(BT_CONN_TYPE_LE, count_right, &count);
+    return count > 0;
+}
 
 static void boot_right_handler(struct k_work *work) {
     struct zmk_behavior_binding binding = {.behavior_dev = DEVICE_DT_NAME(DT_NODELABEL(bootloader))};
     struct zmk_behavior_binding_event event = {.position = 0, .timestamp = k_uptime_get(), .source = 0};
-    int err = peripheral_connected ? zmk_split_bt_invoke_behavior(0, &binding, event, true) : -ENOTCONN;
+    int err = right_connected() ? zmk_split_bt_invoke_behavior(0, &binding, event, true) : -ENOTCONN;
     if (err) {
         LOG_WRN("Could not restart the right half (%d)", err);
     }
@@ -107,7 +110,7 @@ static void info_work_handler(struct k_work *work) {
     static char line[320];
     const char *right = "";
 #if RELAY
-    right = peripheral_connected ? ",\"peripheral\":true" : ",\"peripheral\":false";
+    right = right_connected() ? ",\"peripheral\":true" : ",\"peripheral\":false";
 #endif
     int len = snprintk(line, sizeof(line),
                        "{\"tandem\":" PROTOCOL_VERSION ",\"role\":\"" ROLE "\",\"name\":\"" CONFIG_ZMK_KEYBOARD_NAME
